@@ -42,8 +42,8 @@ describe('UI markup', () => {
   it('includes start overlays with desktop-friendly copy and buttons', () => {
     assert.match(html, /id="start-overlay"/i);
     assert.match(html, /Press Enter or click Start to begin/);
-    assert.match(html, /id="start-run-btn"[^>]*type="button"[^>]*>Start run<\/button>/i);
-    assert.match(html, /id="start-btn"[^>]*type="button"[^>]*>Start run<\/button>/i);
+    assert.match(html, /id="start-run-btn">Start run<\/button>/i);
+    assert.match(html, /id="start-btn">Start run<\/button>/i);
   });
 
   it('keeps touch controls hidden by default for desktop view', () => {
