@@ -128,6 +128,51 @@ html, body {
   color: var(--muted);
 }
 
+.player-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.player-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2de2e6, #5ff2f5);
+  box-shadow: 0 0 18px rgba(45, 226, 230, 0.6);
+  position: relative;
+}
+
+.player-avatar::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 6px;
+  background: #ff3cac;
+  transform: translate(6px, -50%);
+  border-radius: 3px;
+  box-shadow: 0 0 6px rgba(255, 60, 172, 0.8);
+}
+
+.player-copy .label {
+  font-weight: 800;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.player-copy .hint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 #overlay button {
   margin-top: 12px;
   padding: 10px 16px;
