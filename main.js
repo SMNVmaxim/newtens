@@ -1155,6 +1155,13 @@ canvas.addEventListener('mouseup', (e) => {
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+startOverlay?.addEventListener('click', (event) => {
+  if (event.target.closest('#start-run-btn')) {
+    event.preventDefault();
+    startFromOverlay();
+  }
+});
+
 startBtn.addEventListener('click', () => startFromOverlay());
 startRunBtn?.addEventListener('click', () => startFromOverlay());
 bindTouchControls();
