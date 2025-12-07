@@ -1,0 +1,147 @@
+:root {
+  --bg: #0c0c16;
+  --neon: #ff3cac;
+  --cyan: #2de2e6;
+  --panel: rgba(12, 12, 22, 0.8);
+  --text: #f4f5fb;
+  --muted: #8b92b7;
+  --shadow: 0 0 20px rgba(0, 0, 0, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at 20% 20%, #1a1a2f, #0c0c16 60%);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+#game {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: repeating-linear-gradient(45deg, rgba(45, 226, 230, 0.05) 0, rgba(45, 226, 230, 0.05) 12px, rgba(255, 60, 172, 0.05) 12px, rgba(255, 60, 172, 0.05) 24px),
+    radial-gradient(circle at 80% 30%, rgba(255, 60, 172, 0.1), transparent 25%),
+    radial-gradient(circle at 10% 60%, rgba(45, 226, 230, 0.12), transparent 30%),
+    #0c0c16;
+}
+
+#hud {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  width: min(880px, 90vw);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+#hud .title {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--neon);
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(255, 60, 172, 0.7);
+}
+
+#hud .stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+#hud .stats span {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#hud .help {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 60, 172, 0.15), rgba(12, 12, 22, 0.7));
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+
+#overlay.hidden {
+  display: none;
+}
+
+#overlay .panel {
+  background: var(--panel);
+  padding: 24px 32px;
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow);
+}
+
+#overlay h1 {
+  margin: 0 0 8px;
+  color: var(--cyan);
+}
+
+#overlay p {
+  margin: 0;
+  color: var(--muted);
+}
+
+#overlay button {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: linear-gradient(120deg, rgba(45, 226, 230, 0.22), rgba(255, 60, 172, 0.24));
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+
+#overlay button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  filter: brightness(1.08);
+}
+
+#overlay button:active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+}
+
+@media (max-width: 640px) {
+  #hud {
+    top: 8px;
+    padding: 10px 12px;
+  }
+  #hud .help {
+    font-size: 0.82rem;
+  }
+}
