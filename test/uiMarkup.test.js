@@ -52,6 +52,8 @@ describe('UI markup', () => {
     assert.match(html, /id="btn-melee"[^>]*>Melee<\/button>/i);
     assert.match(html, /id="btn-dash"[^>]*>Dash<\/button>/i);
     assert.match(html, /id="btn-start"[^>]*>Start<\/button>/i);
+    assert.match(html, /id="start-run-btn">Start run<\/button>/i);
+    assert.match(html, /id="start-btn">Start run<\/button>/i);
   });
 
   it('keeps touch controls hidden by default for desktop view', () => {
