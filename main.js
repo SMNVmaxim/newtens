@@ -11,6 +11,11 @@ document.querySelector('#hud .stats').appendChild(scoreLabel);
 const overlay = document.getElementById('overlay');
 const overlayText = document.getElementById('overlay-text');
 const startBtn = document.getElementById('start-btn');
+const touchControls = document.getElementById('touch-controls');
+const joystick = document.getElementById('joystick');
+const joystickStick = joystick?.querySelector('.stick');
+const touchButtons = document.querySelectorAll('.touch-btn[data-action]');
+const touchStartButton = document.getElementById('touch-start');
 
 let width = window.innerWidth;
 let height = window.innerHeight;
@@ -265,6 +270,145 @@ function beginRun({ continueWave = false } = {}) {
 function startFromOverlay() {
   beginRun({ continueWave: readyNextWave });
 }
+
+const pointerQuery = window.matchMedia('(pointer: coarse)');
+const joystickKeys = new Set();
+let joystickTouchId = null;
+
+function updateTouchClass() {
+  const isTouch = 'ontouchstart' in window || pointerQuery.matches;
+  document.body.classList.toggle('touch-enabled', isTouch);
+}
+
+function applyJoystickDirections(dx, dy, radius) {
+  for (const key of joystickKeys) {
+    keys.delete(key);
+  }
+  joystickKeys.clear();
+
+  if (!gameStarted) return;
+
+  const deadZone = 0.2;
+  const nx = clamp(dx / radius, -1, 1);
+  const ny = clamp(dy / radius, -1, 1);
+
+  if (ny < -deadZone) joystickKeys.add('w');
+  if (ny > deadZone) joystickKeys.add('s');
+  if (nx < -deadZone) joystickKeys.add('a');
+  if (nx > deadZone) joystickKeys.add('d');
+
+  for (const key of joystickKeys) {
+    keys.add(key);
+  }
+}
+
+function resetJoystick() {
+  if (joystickStick) {
+    joystickStick.style.transform = 'translate(-50%, -50%)';
+  }
+  for (const key of joystickKeys) {
+    keys.delete(key);
+  }
+  joystickKeys.clear();
+}
+
+function handleJoystickTouch(touch) {
+  if (!joystick || !joystickStick) return;
+  const rect = joystick.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const dx = touch.clientX - centerX;
+  const dy = touch.clientY - centerY;
+  const maxOffset = rect.width / 2 - joystickStick.getBoundingClientRect().width / 2;
+  const clampedX = clamp(dx, -maxOffset, maxOffset);
+  const clampedY = clamp(dy, -maxOffset, maxOffset);
+
+  joystickStick.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
+  applyJoystickDirections(dx, dy, rect.width / 2);
+}
+
+function bindTouchControls() {
+  updateTouchClass();
+  pointerQuery.addEventListener('change', updateTouchClass);
+
+  if (joystick) {
+    joystick.addEventListener(
+      'touchstart',
+      (e) => {
+        if (joystickTouchId !== null) return;
+        const touch = e.changedTouches[0];
+        joystickTouchId = touch.identifier;
+        handleJoystickTouch(touch);
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+
+    const moveHandler = (e) => {
+      for (const touch of e.changedTouches) {
+        if (touch.identifier === joystickTouchId) {
+          handleJoystickTouch(touch);
+          e.preventDefault();
+          break;
+        }
+      }
+    };
+
+    const endHandler = (e) => {
+      for (const touch of e.changedTouches) {
+        if (touch.identifier === joystickTouchId) {
+          joystickTouchId = null;
+          resetJoystick();
+          e.preventDefault();
+          break;
+        }
+      }
+    };
+
+    joystick.addEventListener('touchmove', moveHandler, { passive: false });
+    joystick.addEventListener('touchend', endHandler, { passive: false });
+    joystick.addEventListener('touchcancel', endHandler, { passive: false });
+  }
+
+  touchButtons.forEach((btn) => {
+    const action = btn.dataset.action;
+    const startAction = (e) => {
+      e.preventDefault();
+      if (!gameStarted) return;
+      if (action === 'shoot') {
+        shooting = true;
+        shoot();
+      } else if (action === 'melee') {
+        meleeing = true;
+        meleeStrike();
+      } else if (action === 'dash') {
+        keys.add('Shift');
+        setTimeout(() => keys.delete('Shift'), 180);
+      }
+    };
+    const endAction = (e) => {
+      e.preventDefault();
+      if (action === 'shoot') shooting = false;
+      if (action === 'melee') meleeing = false;
+      if (action === 'dash') keys.delete('Shift');
+    };
+
+    btn.addEventListener('touchstart', startAction, { passive: false });
+    btn.addEventListener('touchend', endAction, { passive: false });
+    btn.addEventListener('touchcancel', endAction, { passive: false });
+  });
+
+  if (touchStartButton) {
+    const startHandler = (e) => {
+      e.preventDefault();
+      if (gameStarted) beginRun();
+      else startFromOverlay();
+    };
+    touchStartButton.addEventListener('touchstart', startHandler, { passive: false });
+    touchStartButton.addEventListener('click', startHandler);
+  }
+}
+
 
 function handleInput(dt) {
   const speedBoost = masks[currentMask].speed;
@@ -660,6 +804,7 @@ canvas.addEventListener('mouseup', (e) => {
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
 startBtn.addEventListener('click', () => startFromOverlay());
+bindTouchControls();
 
 reset({ keepOverlay: true });
 showOverlay(`Press Enter or click Start to drop into wave ${currentWave} (${getWaveConfig(currentWave).label}).`, true);
