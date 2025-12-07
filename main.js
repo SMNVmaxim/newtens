@@ -12,13 +12,16 @@ document.querySelector('#hud .stats').appendChild(scoreLabel);
 const overlay = document.getElementById('overlay');
 const startOverlay = document.getElementById('start-overlay');
 const overlayText = document.getElementById('overlay-text');
-const startBtn = document.getElementById('start-btn');
 const startRunBtn = document.getElementById('start-run-btn');
 const touchControls = document.getElementById('touch-controls');
 const joystick = document.getElementById('joystick');
 const joystickStick = joystick?.querySelector('.stick');
 const touchButtons = document.querySelectorAll('.touch-btn[data-action]');
 const touchStartButton = document.getElementById('touch-start');
+const controlShootButton = document.getElementById('btn-shoot');
+const controlMeleeButton = document.getElementById('btn-melee');
+const controlDashButton = document.getElementById('btn-dash');
+const controlStartButton = document.getElementById('btn-start');
 
 if (startOverlay) {
   document.body.classList.add('has-start-overlay');
@@ -459,7 +462,8 @@ function spawnForWave(wave) {
 function showOverlay(message, showStartButton = false) {
   overlayText.textContent = message;
   overlay.classList.remove('hidden');
-  startBtn.classList.toggle('hidden', !showStartButton);
+  const startBtn = document.getElementById('start-btn');
+  startBtn?.classList.toggle('hidden', !showStartButton);
 }
 
 function hideStartOverlay() {
@@ -485,6 +489,29 @@ function beginRun({ continueWave = false } = {}) {
 
 function startFromOverlay() {
   beginRun({ continueWave: readyNextWave });
+}
+
+function performShoot() {
+  if (!gameStarted || !player?.alive) return;
+  shooting = true;
+  shoot();
+}
+
+function performMelee() {
+  if (!gameStarted || !player?.alive) return;
+  meleeing = true;
+  meleeStrike();
+}
+
+function performDash() {
+  if (!gameStarted || !player?.alive) return;
+  keys.add('Shift');
+  setTimeout(() => keys.delete('Shift'), 180);
+}
+
+function startRunFromUI() {
+  if (gameStarted) beginRun();
+  else startFromOverlay();
 }
 
 const pointerQuery = window.matchMedia('(pointer: coarse)');
@@ -591,16 +618,9 @@ function bindTouchControls() {
     const startAction = (e) => {
       e.preventDefault();
       if (!gameStarted) return;
-      if (action === 'shoot') {
-        shooting = true;
-        shoot();
-      } else if (action === 'melee') {
-        meleeing = true;
-        meleeStrike();
-      } else if (action === 'dash') {
-        keys.add('Shift');
-        setTimeout(() => keys.delete('Shift'), 180);
-      }
+      if (action === 'shoot') performShoot();
+      else if (action === 'melee') performMelee();
+      else if (action === 'dash') performDash();
     };
     const endAction = (e) => {
       e.preventDefault();
@@ -617,8 +637,7 @@ function bindTouchControls() {
   if (touchStartButton) {
     const startHandler = (e) => {
       e.preventDefault();
-      if (gameStarted) beginRun();
-      else startFromOverlay();
+      startRunFromUI();
     };
     touchStartButton.addEventListener('touchstart', startHandler, { passive: false });
     touchStartButton.addEventListener('click', startHandler);
@@ -1138,12 +1157,10 @@ canvas.addEventListener('mousemove', (e) => {
 canvas.addEventListener('mousedown', (e) => {
   if (!gameStarted) return;
   if (e.button === 0) {
-    shooting = true;
-    shoot();
+    performShoot();
   }
   if (e.button === 2) {
-    meleeing = true;
-    meleeStrike();
+    performMelee();
   }
 });
 
@@ -1155,6 +1172,27 @@ canvas.addEventListener('mouseup', (e) => {
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+controlShootButton?.addEventListener('click', () => {
+  performShoot();
+  shooting = false;
+});
+
+controlMeleeButton?.addEventListener('click', () => {
+  performMelee();
+  meleeing = false;
+});
+
+controlDashButton?.addEventListener('click', performDash);
+controlStartButton?.addEventListener('click', startRunFromUI);
+
+startOverlay?.addEventListener('click', (event) => {
+  if (event.target.closest('#start-run-btn')) {
+    event.preventDefault();
+    startRunFromUI();
+  }
+});
+
+startRunBtn?.addEventListener('click', () => startRunFromUI());
 startOverlay?.addEventListener('click', (event) => {
   if (event.target.closest('#start-run-btn')) {
     event.preventDefault();
