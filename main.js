@@ -403,6 +403,8 @@ let currentMask = 0;
 let gameStarted = false;
 let currentWave = 1;
 let readyNextWave = false;
+let initialAutoStartTimer = null;
+let initialAutoStartLocked = false;
 let cameraShakeTime = 0;
 let cameraShakeDuration = 0;
 let cameraShakeMagnitude = 0;
@@ -454,6 +456,22 @@ function showOverlay(message, showStartButton = false) {
   startBtn.classList.toggle('hidden', !showStartButton);
 }
 
+function scheduleInitialAutostart() {
+  if (initialAutoStartLocked || initialAutoStartTimer) return;
+  initialAutoStartTimer = setTimeout(() => {
+    if (!gameStarted) startFromOverlay();
+    initialAutoStartTimer = null;
+  }, 2000);
+}
+
+function clearInitialAutostart() {
+  if (initialAutoStartTimer) {
+    clearTimeout(initialAutoStartTimer);
+    initialAutoStartTimer = null;
+  }
+  initialAutoStartLocked = true;
+}
+
 function beginRun({ continueWave = false } = {}) {
   audio.ensureContext();
   audio.stopAll();
@@ -465,6 +483,7 @@ function beginRun({ continueWave = false } = {}) {
   audio.startMusic();
   audio.play('wave', { volume: 0.45 });
   updateHud();
+  clearInitialAutostart();
 }
 
 function startFromOverlay() {
@@ -1143,5 +1162,9 @@ startBtn.addEventListener('click', () => startFromOverlay());
 bindTouchControls();
 
 reset({ keepOverlay: true });
-showOverlay(`Press Enter or click Start to drop into wave ${currentWave} (${getWaveConfig(currentWave).label}).`, true);
+showOverlay(
+  `Press Enter or click Start to drop into wave ${currentWave} (${getWaveConfig(currentWave).label}). Autostart in 2 seconds...`,
+  true
+);
+scheduleInitialAutostart();
 requestAnimationFrame(update);
