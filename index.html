@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Sweep</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="hud">
+    <div class="title">Neon Sweep</div>
+    <div class="stats">
+      <span id="mask">Mask: Tiger (speed)</span>
+      <span id="ammo">Ammo: 6</span>
+      <span id="state">Status: Ready</span>
+      <span id="wave">Wave: 1</span>
+    </div>
+    <div class="help">
+      WASD to move · Shift to dash · LMB shoot · RMB melee/throw · R to restart · 1/2/3 to switch masks
+    </div>
+  </div>
+  <canvas id="game" aria-label="Top-down action prototype" role="img"></canvas>
+  <div id="overlay" class="hidden">
+    <div class="panel">
+      <h1>Run it back?</h1>
+      <p id="overlay-text">Press Enter or click to start.</p>
+      <button id="start-btn">Start run</button>
+    </div>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
