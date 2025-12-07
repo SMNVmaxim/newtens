@@ -152,6 +152,93 @@ html, body {
   filter: brightness(0.95);
 }
 
+#touch-controls {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  display: none;
+}
+
+body.touch-enabled #touch-controls {
+  display: block;
+}
+
+#joystick {
+  position: absolute;
+  left: clamp(12px, 3vw, 28px);
+  bottom: clamp(12px, 4vw, 32px);
+  width: clamp(90px, 22vw, 140px);
+  height: clamp(90px, 22vw, 140px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  touch-action: none;
+  backdrop-filter: blur(6px);
+}
+
+#joystick .stick {
+  position: absolute;
+  width: 48%;
+  height: 48%;
+  background: linear-gradient(130deg, rgba(45, 226, 230, 0.35), rgba(255, 60, 172, 0.45));
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 90ms ease;
+}
+
+.touch-buttons {
+  position: absolute;
+  right: clamp(12px, 3vw, 28px);
+  bottom: clamp(12px, 4vw, 32px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(64px, clamp(70px, 16vw, 100px)));
+  grid-template-rows: repeat(2, minmax(54px, clamp(60px, 15vw, 90px)));
+  gap: clamp(6px, 2vw, 12px);
+  pointer-events: auto;
+}
+
+.touch-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 12, 22, 0.55);
+  color: var(--text);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: clamp(0.82rem, 3vw, 1rem);
+  text-transform: uppercase;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: transform 100ms ease, filter 100ms ease;
+  touch-action: manipulation;
+}
+
+.touch-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+}
+
+#touch-start {
+  position: absolute;
+  right: clamp(12px, 3vw, 28px);
+  top: clamp(12px, 4vw, 28px);
+  width: min(140px, 30vw);
+  height: clamp(48px, 8vh, 60px);
+  pointer-events: auto;
+  background: linear-gradient(120deg, rgba(45, 226, 230, 0.32), rgba(255, 60, 172, 0.32));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #touch-controls {
+    display: none !important;
+  }
+}
+
 @media (max-width: 640px) {
   #hud {
     top: 8px;
