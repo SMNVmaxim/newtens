@@ -409,6 +409,8 @@ let currentMask = 0;
 let gameStarted = false;
 let currentWave = 1;
 let readyNextWave = false;
+let initialAutoStartTimer = null;
+let initialAutoStartLocked = false;
 let cameraShakeTime = 0;
 let cameraShakeDuration = 0;
 let cameraShakeMagnitude = 0;
@@ -478,6 +480,7 @@ function beginRun({ continueWave = false } = {}) {
   audio.startMusic();
   audio.play('wave', { volume: 0.45 });
   updateHud();
+  clearInitialAutostart();
 }
 
 function startFromOverlay() {
