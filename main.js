@@ -116,6 +116,12 @@ function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
 
+function triggerShake(magnitude = 6, duration = 0.2) {
+  cameraShakeMagnitude = Math.max(cameraShakeMagnitude, magnitude);
+  cameraShakeDuration = Math.max(cameraShakeDuration, duration);
+  cameraShakeTime = cameraShakeDuration;
+}
+
 function rectsIntersect(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
@@ -214,6 +220,12 @@ let currentMask = 0;
 let gameStarted = false;
 let currentWave = 1;
 let readyNextWave = false;
+let cameraShakeTime = 0;
+let cameraShakeDuration = 0;
+let cameraShakeMagnitude = 0;
+let alertGlow = 0;
+const muzzleFlashes = [];
+const hitSparks = [];
 
 function reset(options = {}) {
   const { keepOverlay = false, keepScore = false, keepWave = false } = options;
@@ -222,10 +234,16 @@ function reset(options = {}) {
   player = new Player();
   enemies = spawnForWave(currentWave);
   bullets = [];
+  muzzleFlashes.length = 0;
+  hitSparks.length = 0;
   noises.length = 0;
   if (!keepScore) score = 0;
   combo = 0;
   comboTimer = 0;
+  alertGlow = 0;
+  cameraShakeTime = 0;
+  cameraShakeDuration = 0;
+  cameraShakeMagnitude = 0;
   if (!keepOverlay) overlay.classList.add('hidden');
   updateHud();
 }
@@ -309,6 +327,14 @@ function shoot() {
   const py = player.y + player.h / 2;
   const angle = Math.atan2(mouse.y - py, mouse.x - px);
   bullets.push(new Bullet(px, py, angle));
+  muzzleFlashes.push({
+    x: px + Math.cos(angle) * 14,
+    y: py + Math.sin(angle) * 14,
+    angle,
+    life: 0.14,
+    maxLife: 0.14,
+  });
+  triggerShake(4, 0.12);
   player.ammo -= 1;
   addNoise(px, py, 240);
   updateHud();
@@ -336,6 +362,8 @@ function meleeStrike() {
     player.status = 'Stun';
     stateLabel.textContent = 'Status: Stun hit';
     addNoise(px, py, 160);
+    muzzleFlashes.push({ x: px + Math.cos(player.angle) * 16, y: py + Math.sin(player.angle) * 16, angle: player.angle, life: 0.12, maxLife: 0.12 });
+    triggerShake(3, 0.1);
   }
 }
 
@@ -373,6 +401,7 @@ function updateBullets(dt) {
       if (rectsIntersect(bulletRect, enemy)) {
         enemy.alive = false;
         awardKill();
+        hitSparks.push({ x: enemy.x + enemy.w / 2, y: enemy.y + enemy.h / 2, life: 0.28, maxLife: 0.28 });
         bullet.life = 0;
         break;
       }
@@ -387,6 +416,44 @@ function updateNoises(dt) {
   }
   for (let i = noises.length - 1; i >= 0; i--) {
     if (noises[i].life <= 0) noises.splice(i, 1);
+  }
+}
+
+function updateEffects(dt) {
+  if (cameraShakeTime > 0) {
+    cameraShakeTime -= dt;
+    if (cameraShakeTime < 0) cameraShakeTime = 0;
+  }
+
+  for (const flash of muzzleFlashes) {
+    flash.life -= dt;
+  }
+  for (const spark of hitSparks) {
+    spark.life -= dt;
+  }
+  for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
+    if (muzzleFlashes[i].life <= 0) muzzleFlashes.splice(i, 1);
+  }
+  for (let i = hitSparks.length - 1; i >= 0; i--) {
+    if (hitSparks[i].life <= 0) hitSparks.splice(i, 1);
+  }
+
+  let targetAlert = 0;
+  for (const enemy of enemies) {
+    if (!enemy.alive) continue;
+    if (enemy.state === 'chase') {
+      targetAlert = 1;
+      break;
+    }
+    if (enemy.state === 'alert') {
+      targetAlert = Math.max(targetAlert, clamp(enemy.alertTimer / 0.6, 0, 1));
+    }
+  }
+  if (!player.alive) targetAlert = 0;
+  if (targetAlert > alertGlow) {
+    alertGlow = targetAlert;
+  } else {
+    alertGlow = Math.max(0, alertGlow - dt * 1.5);
   }
 }
 
@@ -466,6 +533,7 @@ function updateEnemies(dt) {
       readyNextWave = false;
       currentWave = 1;
       combo = 0;
+      triggerShake(18, 0.45);
       updateHud();
       showOverlay('You were taken out. Press R or Start to retry wave 1.', true);
       stateLabel.textContent = 'Status: Down';
@@ -492,6 +560,14 @@ function drawGrid() {
 
 function draw() {
   ctx.clearRect(0, 0, width, height);
+  ctx.save();
+  if (cameraShakeTime > 0 && cameraShakeDuration > 0) {
+    const falloff = (cameraShakeTime / cameraShakeDuration) ** 2;
+    const shakeAmount = cameraShakeMagnitude * falloff;
+    const offsetX = (Math.random() * 2 - 1) * shakeAmount;
+    const offsetY = (Math.random() * 2 - 1) * shakeAmount;
+    ctx.translate(offsetX, offsetY);
+  }
   drawGrid();
 
   // Walls
@@ -526,6 +602,20 @@ function draw() {
     ctx.restore();
   }
 
+  // Impact sparks
+  for (const spark of hitSparks) {
+    const lifeT = spark.life / spark.maxLife;
+    const radius = 16 * (1 - lifeT) + 8;
+    ctx.save();
+    ctx.globalAlpha = lifeT;
+    ctx.strokeStyle = 'rgba(255, 140, 66, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(spark.x, spark.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // Enemies
   for (const enemy of enemies) {
     if (!enemy.alive) continue;
@@ -550,6 +640,24 @@ function draw() {
   ctx.fillRect(6, -3, 10, 6); // a small muzzle highlight
   ctx.restore();
 
+  // Muzzle flashes and melee trails
+  for (const flash of muzzleFlashes) {
+    const lifeT = flash.life / flash.maxLife;
+    const length = 26 * lifeT + 10;
+    ctx.save();
+    ctx.translate(flash.x, flash.y);
+    ctx.rotate(flash.angle);
+    ctx.globalAlpha = lifeT;
+    ctx.fillStyle = 'rgba(255, 240, 180, 0.9)';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(length, -6 * lifeT);
+    ctx.lineTo(length, 6 * lifeT);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   // HUD markers
   ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.beginPath();
@@ -561,6 +669,38 @@ function draw() {
   ctx.fillRect(940, 620, 32, 32);
   ctx.strokeStyle = '#2de2e6';
   ctx.strokeRect(940, 620, 32, 32);
+  ctx.restore();
+
+  // Alert edge glow
+  if (alertGlow > 0) {
+    const alpha = 0.32 * alertGlow;
+    const thickness = 46;
+    ctx.save();
+    const leftGrad = ctx.createLinearGradient(0, 0, thickness, 0);
+    leftGrad.addColorStop(0, `rgba(255, 64, 64, ${alpha})`);
+    leftGrad.addColorStop(1, 'rgba(255, 64, 64, 0)');
+    ctx.fillStyle = leftGrad;
+    ctx.fillRect(0, 0, thickness, height);
+
+    const rightGrad = ctx.createLinearGradient(width, 0, width - thickness, 0);
+    rightGrad.addColorStop(0, `rgba(255, 64, 64, ${alpha})`);
+    rightGrad.addColorStop(1, 'rgba(255, 64, 64, 0)');
+    ctx.fillStyle = rightGrad;
+    ctx.fillRect(width - thickness, 0, thickness, height);
+
+    const topGrad = ctx.createLinearGradient(0, 0, 0, thickness);
+    topGrad.addColorStop(0, `rgba(255, 64, 64, ${alpha})`);
+    topGrad.addColorStop(1, 'rgba(255, 64, 64, 0)');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, width, thickness);
+
+    const bottomGrad = ctx.createLinearGradient(0, height, 0, height - thickness);
+    bottomGrad.addColorStop(0, `rgba(255, 64, 64, ${alpha})`);
+    bottomGrad.addColorStop(1, 'rgba(255, 64, 64, 0)');
+    ctx.fillStyle = bottomGrad;
+    ctx.fillRect(0, height - thickness, width, thickness);
+    ctx.restore();
+  }
 }
 
 function checkWin() {
@@ -598,6 +738,7 @@ function update(timestamp) {
     }
   }
 
+  updateEffects(dt);
   draw();
   requestAnimationFrame(update);
 }
