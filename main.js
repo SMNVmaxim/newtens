@@ -5,6 +5,7 @@ const ammoLabel = document.getElementById('ammo');
 const stateLabel = document.getElementById('state');
 const waveLabel = document.getElementById('wave');
 const scoreLabel = document.createElement('span');
+const musicSlider = document.getElementById('music-volume');
 scoreLabel.id = 'score';
 scoreLabel.textContent = 'Score: 0';
 document.querySelector('#hud .stats').appendChild(scoreLabel);
@@ -35,6 +36,182 @@ let comboTimer = 0;
 const noises = [];
 const VISION_RANGE = 260;
 const VISION_FOV = Math.PI * 0.75;
+const DEFAULT_MUSIC_VOLUME = 0.35;
+
+class AudioManager {
+  constructor() {
+    this.ctx = null;
+    this.buffers = new Map();
+    this.masterGain = null;
+    this.musicGain = null;
+    this.musicSource = null;
+    this.activeSources = new Set();
+    this.musicLoopBuffer = null;
+  }
+
+  ensureContext() {
+    if (!this.ctx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
+      this.masterGain = this.ctx.createGain();
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.35;
+      this.masterGain.connect(this.ctx.destination);
+      this.musicGain.connect(this.ctx.destination);
+    }
+    return this.ctx.resume();
+  }
+
+  async preload() {
+    await this.ensureContext();
+    const payloads = [
+      ['shoot', { freq: 1800, duration: 0.14, attack: 0.01, decay: 0.12, type: 'square' }],
+      ['dry', { freq: 400, duration: 0.18, attack: 0.01, decay: 0.18, type: 'sawtooth' }],
+      ['melee', { freq: 260, duration: 0.16, attack: 0.0, decay: 0.16, type: 'triangle' }],
+      ['stun', { freq: 520, duration: 0.24, attack: 0.01, decay: 0.2, type: 'square' }],
+      ['playerHit', { freq: 140, duration: 0.4, attack: 0.01, decay: 0.36, type: 'sawtooth' }],
+      ['enemyDown', { freq: 960, duration: 0.3, attack: 0.01, decay: 0.28, type: 'triangle' }],
+      ['wave', { freq: 620, duration: 0.45, attack: 0.01, decay: 0.42, type: 'triangle', sweep: -180 }],
+      ['alert', { freq: 880, duration: 0.5, attack: 0.01, decay: 0.45, type: 'square', pulses: 2 }],
+    ];
+
+    for (const [key, config] of payloads) {
+      const buf = await this.createTone(config);
+      this.buffers.set(key, buf);
+    }
+
+    this.musicLoopBuffer = await this.renderMusicLoop();
+  }
+
+  async createTone({ freq, duration, attack, decay, type = 'sine', sweep = 0, pulses = 1 }) {
+    const ctx = new OfflineAudioContext(1, 44100 * duration, 44100);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, 0);
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    for (let i = 0; i < pulses; i++) {
+      const start = (duration / pulses) * i;
+      const end = Math.min(duration, start + duration / pulses);
+      const localAttack = Math.max(attack, 0.005);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(1, start + localAttack);
+      gain.gain.exponentialRampToValueAtTime(0.001, end);
+    }
+    osc.frequency.setValueAtTime(freq, 0);
+    if (sweep !== 0) {
+      osc.frequency.linearRampToValueAtTime(freq + sweep, duration);
+    }
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(duration);
+    const buffer = await ctx.startRendering();
+    return buffer;
+  }
+
+  async renderMusicLoop() {
+    const duration = 8;
+    const ctx = new OfflineAudioContext(2, 44100 * duration, 44100);
+    const pads = [
+      { freq: 164, start: 0, len: 3.6 },
+      { freq: 246, start: 1.5, len: 3 },
+      { freq: 329, start: 4, len: 3.2 },
+    ];
+    pads.forEach(({ freq, start, len }, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.18, start + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + len);
+      const panner = ctx.createStereoPanner();
+      panner.pan.setValueAtTime((i - 1) * 0.4, start);
+      osc.connect(gain).connect(panner).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + len);
+    });
+    return ctx.startRendering();
+  }
+
+  stopAll() {
+    for (const src of this.activeSources) {
+      try {
+        src.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
+    this.activeSources.clear();
+    if (this.musicSource) {
+      try {
+        this.musicSource.stop();
+      } catch (e) {
+        // ignore
+      }
+      this.musicSource.disconnect();
+      this.musicSource = null;
+    }
+  }
+
+  play(name, { volume = 1, rate = 1 } = {}) {
+    const buffer = this.buffers.get(name);
+    if (!buffer) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+    const gain = this.ctx.createGain();
+    gain.gain.value = volume;
+    source.connect(gain).connect(this.masterGain);
+    this.activeSources.add(source);
+    source.onended = () => this.activeSources.delete(source);
+    source.start();
+  }
+
+  startMusic() {
+    if (!this.musicLoopBuffer) return;
+    this.stopMusic();
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.musicLoopBuffer;
+    source.loop = true;
+    source.connect(this.musicGain);
+    source.start();
+    this.musicSource = source;
+  }
+
+  stopMusic() {
+    if (this.musicSource) {
+      try {
+        this.musicSource.stop();
+      } catch (e) {
+        // ignore
+      }
+      this.musicSource.disconnect();
+      this.musicSource = null;
+    }
+  }
+
+  setMusicVolume(value) {
+    if (!this.musicGain) return;
+    this.musicGain.gain.value = value;
+  }
+}
+
+const audio = new AudioManager();
+
+if (musicSlider) {
+  musicSlider.value = String(Math.round(DEFAULT_MUSIC_VOLUME * 100));
+  musicSlider.addEventListener('input', (e) => {
+    const raw = Number(e.target.value) || 0;
+    const clamped = clamp(raw, 0, 100) / 100;
+    audio.ensureContext();
+    audio.setMusicVolume(clamped);
+  });
+}
+
+audio.preload().then(() => {
+  const sliderVolume = musicSlider ? clamp(Number(musicSlider.value) || 0, 0, 100) / 100 : DEFAULT_MUSIC_VOLUME;
+  audio.setMusicVolume(sliderVolume);
+});
 
 const waveConfigs = [
   {
@@ -191,6 +368,7 @@ class Enemy {
     this.stunTimer = 0;
     this.alertTimer = 0;
     this.facing = 0;
+    this.alerted = false;
   }
 }
 
@@ -254,11 +432,15 @@ function showOverlay(message, showStartButton = false) {
 }
 
 function beginRun({ continueWave = false } = {}) {
+  audio.ensureContext();
+  audio.stopAll();
   reset({ keepScore: continueWave, keepWave: continueWave });
   gameStarted = true;
   readyNextWave = false;
   overlay.classList.add('hidden');
   player.status = 'Ready';
+  audio.startMusic();
+  audio.play('wave', { volume: 0.45 });
   updateHud();
 }
 
@@ -303,6 +485,7 @@ function shoot() {
   if (!player.alive) return;
   if (player.ammo <= 0) {
     stateLabel.textContent = 'Status: Click! No ammo';
+    audio.play('dry', { volume: 0.55 + Math.random() * 0.08 });
     return;
   }
   const px = player.x + player.w / 2;
@@ -310,6 +493,7 @@ function shoot() {
   const angle = Math.atan2(mouse.y - py, mouse.x - px);
   bullets.push(new Bullet(px, py, angle));
   player.ammo -= 1;
+  audio.play('shoot', { volume: 0.62 + Math.random() * 0.12, rate: 0.95 + Math.random() * 0.1 });
   addNoise(px, py, 240);
   updateHud();
 }
@@ -320,6 +504,7 @@ function meleeStrike() {
   const px = player.x + player.w / 2;
   const py = player.y + player.h / 2;
   let hit = false;
+  audio.play('melee', { volume: 0.6 });
   for (const enemy of enemies) {
     if (!enemy.alive) continue;
     const ex = enemy.x + enemy.w / 2;
@@ -336,6 +521,7 @@ function meleeStrike() {
     player.status = 'Stun';
     stateLabel.textContent = 'Status: Stun hit';
     addNoise(px, py, 160);
+    audio.play('stun', { volume: 0.78 });
   }
 }
 
@@ -373,6 +559,7 @@ function updateBullets(dt) {
       if (rectsIntersect(bulletRect, enemy)) {
         enemy.alive = false;
         awardKill();
+        audio.play('enemyDown', { volume: 0.72 + Math.random() * 0.12 });
         bullet.life = 0;
         break;
       }
@@ -393,6 +580,7 @@ function updateNoises(dt) {
 function updateEnemies(dt) {
   for (const enemy of enemies) {
     if (!enemy.alive) continue;
+    const previousState = enemy.state;
     if (enemy.stunTimer > 0) {
       enemy.stunTimer -= dt;
       if (enemy.stunTimer <= 0) enemy.state = 'patrol';
@@ -440,6 +628,13 @@ function updateEnemies(dt) {
       enemy.state = 'chase';
     }
 
+    if (enemy.state === 'chase' && previousState !== 'chase') {
+      enemy.alerted = true;
+      audio.play('alert', { volume: 0.55 });
+    } else if (enemy.state === 'patrol') {
+      enemy.alerted = false;
+    }
+
     let target;
     if (enemy.state === 'chase' || enemy.state === 'alert') {
       target = { x: player.x, y: player.y };
@@ -466,6 +661,8 @@ function updateEnemies(dt) {
       readyNextWave = false;
       currentWave = 1;
       combo = 0;
+      audio.play('playerHit', { volume: 0.95 });
+      audio.stopMusic();
       updateHud();
       showOverlay('You were taken out. Press R or Start to retry wave 1.', true);
       stateLabel.textContent = 'Status: Down';
@@ -574,6 +771,8 @@ function checkWin() {
     comboTimer = 0;
     currentWave += 1;
     const upcoming = getWaveConfig(currentWave);
+    audio.play('wave', { volume: 0.7 });
+    audio.stopMusic();
     updateHud();
     showOverlay(`Wave cleared. Start wave ${currentWave}? (${upcoming.label})`, true);
   }
