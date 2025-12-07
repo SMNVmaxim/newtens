@@ -10,13 +10,19 @@ scoreLabel.id = 'score';
 scoreLabel.textContent = 'Score: 0';
 document.querySelector('#hud .stats').appendChild(scoreLabel);
 const overlay = document.getElementById('overlay');
+const startOverlay = document.getElementById('start-overlay');
 const overlayText = document.getElementById('overlay-text');
 const startBtn = document.getElementById('start-btn');
+const startRunBtn = document.getElementById('start-run-btn');
 const touchControls = document.getElementById('touch-controls');
 const joystick = document.getElementById('joystick');
 const joystickStick = joystick?.querySelector('.stick');
 const touchButtons = document.querySelectorAll('.touch-btn[data-action]');
 const touchStartButton = document.getElementById('touch-start');
+
+if (startOverlay) {
+  document.body.classList.add('has-start-overlay');
+}
 
 let width = window.innerWidth;
 let height = window.innerHeight;
@@ -454,12 +460,19 @@ function showOverlay(message, showStartButton = false) {
   startBtn.classList.toggle('hidden', !showStartButton);
 }
 
+function hideStartOverlay() {
+  if (!startOverlay) return;
+  startOverlay.classList.add('hidden');
+  document.body.classList.remove('has-start-overlay');
+}
+
 function beginRun({ continueWave = false } = {}) {
   audio.ensureContext();
   audio.stopAll();
   reset({ keepScore: continueWave, keepWave: continueWave });
   gameStarted = true;
   readyNextWave = false;
+  hideStartOverlay();
   overlay.classList.add('hidden');
   player.status = 'Ready';
   audio.startMusic();
@@ -1140,8 +1153,8 @@ canvas.addEventListener('mouseup', (e) => {
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
 startBtn.addEventListener('click', () => startFromOverlay());
+startRunBtn?.addEventListener('click', () => startFromOverlay());
 bindTouchControls();
 
 reset({ keepOverlay: true });
-showOverlay(`Press Enter or click Start to drop into wave ${currentWave} (${getWaveConfig(currentWave).label}).`, true);
 requestAnimationFrame(update);

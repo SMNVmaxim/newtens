@@ -23,11 +23,26 @@
       WASD to move · Shift to dash · LMB shoot · RMB melee/throw · R to restart · 1/2/3 to switch masks
     </div>
   </div>
+  <div id="start-overlay">
+    <div class="start-panel">
+      <h1>NEON SWEEP</h1>
+      <p class="subtitle">WASD to move · Shift to dash · LMB shoot · RMB melee/throw · R to restart · 1/2/3 to switch masks</p>
+      <p class="start-hint">Press Enter or click Start to begin</p>
+      <button id="start-run-btn">Start run</button>
+    </div>
+  </div>
   <canvas id="game" aria-label="Top-down action prototype" role="img"></canvas>
   <div id="overlay" class="hidden">
     <div class="panel">
       <h1>Run it back?</h1>
       <p id="overlay-text">Press Enter or click to start.</p>
+      <div class="player-preview" aria-hidden="true">
+        <div class="player-avatar"></div>
+        <div class="player-copy">
+          <div class="label">Player</div>
+          <div class="hint">Cyan square you control once you start.</div>
+        </div>
+      </div>
       <button id="start-btn">Start run</button>
     </div>
   </div>
