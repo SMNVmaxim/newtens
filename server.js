@@ -40,29 +40,42 @@ function serveFile(res, filePath) {
 }
 
 function safePath(requestUrl) {
-  const { pathname } = url.parse(requestUrl);
+  const parsed = url.parse(requestUrl);
+  let pathname = parsed.pathname || '/';
+  try {
+    pathname = decodeURIComponent(pathname);
+  } catch (err) {
+    return null;
+  }
   const target = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-  const filePath = path.join(ROOT, target);
-  if (!filePath.startsWith(ROOT)) return null;
+  const filePath = path.resolve(ROOT, target);
+  if (!filePath.startsWith(`${ROOT}${path.sep}`)) return null;
   return filePath;
 }
 
-const server = http.createServer((req, res) => {
-  const filePath = safePath(req.url || '/');
-  if (!filePath) {
-    send(res, 400, 'text/plain', 'Bad request');
-    return;
-  }
-
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      send(res, 404, 'text/plain', 'Not found');
+function createServer() {
+  return http.createServer((req, res) => {
+    const filePath = safePath(req.url || '/');
+    if (!filePath) {
+      send(res, 400, 'text/plain', 'Bad request');
       return;
     }
-    serveFile(res, filePath);
-  });
-});
 
-server.listen(PORT, () => {
-  console.log(`Neon Sweep server running at http://localhost:${PORT}`);
-});
+    fs.stat(filePath, (err, stats) => {
+      if (err || !stats.isFile()) {
+        send(res, 404, 'text/plain', 'Not found');
+        return;
+      }
+      serveFile(res, filePath);
+    });
+  });
+}
+
+if (require.main === module) {
+  const server = createServer();
+  server.listen(PORT, () => {
+    console.log(`Neon Sweep server running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = { createServer, safePath, ROOT };
