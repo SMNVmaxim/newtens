@@ -74,6 +74,22 @@ html, body {
   background: rgba(255, 255, 255, 0.06);
 }
 
+#hud .stats .volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+#hud .stats .volume input[type='range'] {
+  width: 120px;
+  accent-color: var(--neon);
+}
+
 #hud .help {
   margin-top: 8px;
   color: var(--muted);
