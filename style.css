@@ -197,12 +197,89 @@ html, body {
   filter: brightness(0.95);
 }
 
+#start-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 6, 12, 0.82);
+  backdrop-filter: blur(6px);
+  z-index: 30;
+  text-align: center;
+}
+
+#start-overlay .start-panel {
+  padding: clamp(20px, 3vw, 32px);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(12, 12, 22, 0.95), rgba(24, 16, 30, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.45);
+  width: min(640px, 90vw);
+}
+
+#start-overlay h1 {
+  margin: 0 0 10px;
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  letter-spacing: 0.16em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(45, 226, 230, 0.65);
+}
+
+#start-overlay .subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: clamp(0.95rem, 2vw, 1.05rem);
+}
+
+#start-overlay .start-hint {
+  margin: 18px 0 0;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+#start-run-btn {
+  margin-top: 16px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(120deg, rgba(45, 226, 230, 0.32), rgba(255, 60, 172, 0.32));
+  color: var(--text);
+  font-weight: 800;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+  transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
+}
+
+#start-run-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
+}
+
+#start-run-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.96);
+}
+
 #touch-controls {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 15;
   display: none;
+}
+
+body.has-start-overlay #touch-controls {
+  display: none !important;
+}
+
+#overlay:not(.hidden) + #touch-controls {
+  display: none !important;
 }
 
 body.touch-enabled #touch-controls {
