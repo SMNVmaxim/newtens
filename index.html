@@ -1,68 +1,62 @@
 <!DOCTYPE html>
+<!--
+  How to run:
+  - Open this file directly in a browser, or
+  - Run `npm install` then `npm start` and visit http://localhost:8080
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Neon Sweep</title>
+  <title>Cozy Garden Loop</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <div id="hud">
-    <div class="title">Neon Sweep</div>
-    <div class="stats">
-      <span id="mask">Mask: Tiger (speed)</span>
-      <span id="ammo">Ammo: 6</span>
-      <span id="state">Status: Ready</span>
-      <span id="wave">Wave: 1</span>
-      <label class="volume">
-        Music
-        <input id="music-volume" type="range" min="0" max="100" value="35" aria-label="Music volume" />
-      </label>
-    </div>
-    <div class="help">
-      WASD to move · Shift to dash · LMB shoot · RMB melee/throw · R to restart · 1/2/3 to switch masks
-    </div>
-  </div>
-  <div id="start-overlay">
-    <div class="start-panel">
-      <h1>NEON SWEEP</h1>
-      <p class="subtitle">WASD to move · Shift to dash · LMB shoot · RMB melee/throw · R to restart · 1/2/3 to switch masks</p>
-      <p class="start-hint">Press Enter or click Start to begin</p>
-      <button id="start-run-btn" type="button">Start run</button>
-    </div>
-  </div>
-  <canvas id="game" aria-label="Top-down action prototype" role="img"></canvas>
-  <div id="overlay">
-    <div class="panel">
-      <h1>Run it back?</h1>
-      <p id="overlay-text">Press Enter or click to start.</p>
-      <div class="player-preview" aria-hidden="true">
-        <div class="player-avatar"></div>
-        <div class="player-copy">
-          <div class="label">Player</div>
-          <div class="hint">Cyan square you control once you start.</div>
-        </div>
+<body class="theme-day">
+  <div class="app">
+    <header class="top-bar">
+      <div class="brand">
+        <h1>Cozy Garden</h1>
+        <p>Daily 10-minute ritual</p>
       </div>
-      <button id="start-btn" type="button">Start run</button>
+      <div class="meters">
+        <div class="meter">
+          <span class="meter-label">Garden Mood</span>
+          <div class="meter-bar">
+            <div id="carecharge-fill" class="meter-fill"></div>
+          </div>
+          <span id="carecharge-value" class="meter-value">0</span>
+        </div>
+        <div class="petals">Petals: <span id="petal-count">0</span></div>
+      </div>
+    </header>
+
+    <section class="actions">
+      <button id="water-all" class="primary">
+        Water All
+        <span id="water-all-cooldown" class="cooldown"></span>
+      </button>
+      <button id="weed-sweep" class="primary">
+        Weed Sweep
+        <span id="weed-sweep-cooldown" class="cooldown"></span>
+      </button>
+      <button id="open-daily" class="ghost">Daily Check</button>
+    </section>
+
+    <section id="pot-grid" class="pot-grid"></section>
+  </div>
+
+  <div id="daily-modal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <header>
+        <h2>Daily Check</h2>
+        <p>Warm rituals to keep the garden glowing.</p>
+      </header>
+      <ul id="daily-tasks" class="task-list"></ul>
+      <div id="daily-reward" class="reward"></div>
+      <button id="daily-close" class="primary">Back to garden</button>
     </div>
   </div>
-  <div id="controls" aria-label="Desktop controls">
-    <button id="btn-shoot" type="button">Shoot</button>
-    <button id="btn-melee" type="button">Melee</button>
-    <button id="btn-dash" type="button">Dash</button>
-    <button id="btn-start" type="button">Start</button>
-  </div>
-  <div id="touch-controls" aria-hidden="true">
-    <div id="joystick">
-      <div class="stick" aria-hidden="true"></div>
-    </div>
-    <div class="touch-buttons">
-      <button class="touch-btn" data-action="shoot">Shoot</button>
-      <button class="touch-btn" data-action="melee">Melee</button>
-      <button class="touch-btn" data-action="dash">Dash</button>
-    </div>
-    <button id="touch-start" class="touch-btn">Start</button>
-  </div>
+
   <script type="module" src="main.js"></script>
 </body>
 </html>
